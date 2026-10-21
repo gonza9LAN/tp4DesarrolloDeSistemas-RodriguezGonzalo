@@ -1,0 +1,34 @@
+# Parte 5 — Reflexión
+
+## 1. ¿Cuántos tests unitarios, de integración y E2E tenés? ¿Por qué esa proporción?
+
+Tengo 37 tests unitarios en test_checkout.py (distribuidos en 31 funciones, algunas de ellas parametrizadas), 5 de integración en test_integracion.py y 7 end-to-end en test_e2e.py, contemplando en estos dos últimos los tests de ejemplo que venían con la plantilla.
+Esta proporción se ajusta a la pirámide de testing: una base amplia de tests unitarios abajo y muy pocos E2E arriba. Los unitarios son livianos y rápidos (los 37 corren en menos de un segundo) y cada uno valida una regla puntual de checkout, como el límite de 10 unidades, las 5 prendas o el 30/11 como fecha límite del cupón. Por su parte, los de integración y E2E resultan más lentos porque interactúan con una base real y levantan el servidor, de modo que los reservé para verificar lo que solo sale a la luz cuando las piezas se conectan. Además, en la Parte 4 el profesor aclaró que había que elegir solo 4 puntos de R10 y 4 errores de R11, lo que explica la cantidad acotada en esos archivos. Con ese volumen alcanzó de sobra: los 4 tests de integración y los 6 E2E que escribí fallan al correrlos contra el código entregado, cada uno detectando una falla distinta.
+
+## 2. ¿Qué falla de pedidos.py no podía encontrarse con un test unitario de checkout.py? ¿Por qué?
+
+La falta del commit en guardar_pedido. El pedido se inserta, se actualizan los montos y se guardan los ítems, pero la transacción nunca se confirma en la base de datos, por lo que ninguna otra conexión llega a ver esos datos. Un test unitario de checkout no puede detectarla porque el cálculo del total está bien hecho; el problema está en cómo se persisten los datos, no en cómo se calculan.
+La encontré mediante test_otra_conexion_ve_el_pedido_completo_al_terminar_de_guardar, que guarda un pedido y lo consulta desde una segunda conexión: el subtotal vuelve como Decimal('0') en lugar de Decimal('23999.00'). Si hubiese leído con la misma conexión que guardó, el test habría pasado, dado que esa conexión sí ve sus propios cambios no confirmados. Por HTTP sucede exactamente lo mismo: en test_un_pedido_creado_se_lee_completo_con_get, la petición POST responde 201, pero el GET posterior devuelve el pedido con todos los montos en 0 y sin ítems.
+
+## 3. ¿Qué falla de api.py estaba en el paso de información entre dos partes del sistema? ¿Qué parte tendría que haberla resuelto?
+
+La gestión de la fecha. El frontend envía la fecha como texto ("2026-11-30"), y api.py se la pasa tal cual a pedidos.py, que a su vez se la envía a checkout.py. Al llegar a checkout, el sistema intenta compararla con la fecha de vencimiento del cupón (que es un objeto de tipo date), y Python no puede comparar una cadena de texto con una fecha. Debido a esto, un pedido con el cupón EGRESADOS2026 y fecha —que es justamente el ejemplo de la especificación— terminaba lanzando un error 500 (hallazgo H-35 de la auditoría).
+Además, la API jamás valida el formato: en test_una_fecha_sin_formato_aaaa_mm_dd_responde_400_fecha_invalida envié "30/11/2026" y respondió 201 en lugar de 400 FECHA_INVALIDA. La encargada de resolverlo tendría que haber sido api.py, por ser la frontera directa con el frontend: debe validar que la fecha cumpla con el formato AAAA-MM-DD, responder con FECHA_INVALIDA si no lo cumple y convertirla a date antes de pasarla a las capas internas.
+
+## 4. ¿Cuál de las fallas que encontraste habría sido la más cara de descubrir en producción? ¿Por qué?
+
+Para mí, la ausencia del commit en pedidos.py. Es la más cara porque no genera ningún error visible: el comprador recibe una respuesta 201 con el total correcto y asume que su compra quedó registrada, pero en la base de datos la orden queda con montos en 0 y sin ítems.
+Cuando la probé desde la API, cada pedido creado se leía posteriormente con subtotal 0.0 e items vacíos. Nadie se daría cuenta del problema hasta que la comisión tuviera que encargar los buzos y las remeras y no tuviera registro de qué pidió cada estudiante. Para ese momento ya habría un volumen gigante de pedidos perdidos que habría que reconstruir manualmente, consultando a cada compañero uno por uno. Si bien existen otras fallas graves (como la inyección SQL o el envío del precio desde el cliente), esta impacta a la totalidad de las compras de forma silenciosa.
+
+## 5. ¿Qué mide la cobertura, qué mide la mutación y qué mide la inyección de fallas? ¿En qué se diferencian?
+
+* **Cobertura:** Mide qué líneas y ramas del código se ejecutaron al correr los tests, pero no si el resultado fue verificado correctamente. La suite generada por la IA alcanzaba un 77% de cobertura de líneas pero no detectaba ninguna falla, ya que usaba comprobaciones muy débiles como is not None o bloques try/except que ignoraban cualquier error.
+* **Mutación:** Mide si la suite de tests es capaz de detectar pequeños cambios en el código fuente. Herramientas como mutar.py cambian, por ejemplo, un >= por un > y verifican si algún test falla al detectar la alteración. La suite de la IA obtuvo un 58,6% y la mía un 100% (34 de 34 mutantes eliminados); los mutantes que sobrevivían en mi suite antes de completarla marcaban casos límite sin probar, como la cantidad 11 o el costo de envío con exactamente $ 60.000.
+* **Inyección de fallas:** Mide si los tests logran encontrar fallas reales del sistema. Se parte de una versión corregida del código y se reintroduce deliberadamente un error concreto (como la falta del commit) para confirmar si el test lo atrapa.
+
+**Diferencia principal:** La cobertura revisa el código que se ejecuta, la mutación evalúa si los tests detectan cambios artificiales y pequeños en la lógica y la inyección de fallas valida la detección de defectos reales de negocio.
+
+## 6. Si una IA escribiera tus tests de integración y E2E, ¿qué le faltaría probar? ¿Cómo lo comprobarías?
+
+Le faltaría probar aquellos escenarios que solo surgen al conectar múltiples componentes: consultar el pedido desde una conexión distinta de base de datos, validar la cantidad de filas que quedan tras un error o enviar fechas en formatos alternativos. Los tests creados por la IA para checkout muestran ese patrón: se limitaban al camino feliz (happy path), calculaban los valores usando las mismas fórmulas del código fuente y no contemplaban casos de error.
+En tests de integración, es muy probable que una IA consulte el pedido utilizando la misma conexión con la que lo guardó (pasando por alto la falta del commit) o compare los montos contra la salida del propio código en lugar de hacerlo contra la especificación. Para comprobarlo, correría sus tests directamente sobre el código entregado: si todos pasan sin fallar, significa que no están detectando nada. Luego, revisaría cada assert contra la especificación y reintroduciría las fallas de la auditoría una por una en una versión correcta para confirmar si la suite las llega a capturar.
