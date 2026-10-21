@@ -49,10 +49,7 @@ def calcular_subtotal(carrito):
     subtotal = Decimal("0")
     for item in carrito:
         validar_item(item)
-        try:
-            precio = item.get("precio", CATALOGO[item["producto"]])
-        except:
-            continue
+        precio = CATALOGO[item["producto"]]
         subtotal += precio * item["cantidad"]
 
     return round(subtotal, 2)
