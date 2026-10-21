@@ -1,6 +1,6 @@
 import json
 from datetime import date
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 
 class CheckoutError(Exception):
@@ -82,7 +82,7 @@ def calcular_descuento(subtotal, cantidad_prendas, cupon=None, fecha=date.today(
                 )
             descuento += datos["valor"]
 
-    return round(descuento, 2)
+    return descuento.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def calcular_envio(subtotal, zona):
