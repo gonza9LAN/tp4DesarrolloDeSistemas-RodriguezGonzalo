@@ -159,6 +159,22 @@ def test_egresados2026_es_valido_el_30_de_noviembre():
     assert descuento == Decimal("15000.00")
 
 
+def test_bienvenida_descuenta_tres_mil_con_el_minimo_exacto():
+    subtotal = Decimal("20000.00")
+
+    descuento = calcular_descuento(subtotal, 1, "BIENVENIDA", HOY_VIGENTE)
+
+    assert descuento == Decimal("3000.00")
+
+
+def test_bienvenida_con_un_centavo_menos_del_minimo_no_se_aplica():
+    subtotal = Decimal("19999.99")
+
+    codigo = codigo_de_error(calcular_descuento, subtotal, 1, "BIENVENIDA", HOY_VIGENTE)
+
+    assert codigo == "CUPON_MINIMO_NO_ALCANZADO"
+
+
 def test_solo_existen_los_cupones_egresados2026_y_bienvenida():
     subtotal = Decimal("100000.00")
 
@@ -204,6 +220,14 @@ def test_la_cantidad_diez_es_valida():
     subtotal = calcular_subtotal(carrito)
 
     assert subtotal == Decimal("119995.00")
+
+
+def test_la_cantidad_once_es_invalida():
+    carrito_item = item(cantidad=11)
+
+    codigo = codigo_de_error(validar_item, carrito_item)
+
+    assert codigo == "CANTIDAD_INVALIDA"
 
 
 @pytest.mark.parametrize("cantidad", [2.5, "2", True])
@@ -268,6 +292,14 @@ def test_una_zona_que_no_es_texto_lanza_zona_invalida():
     codigo = codigo_de_error(calcular_envio, subtotal, None)
 
     assert codigo == "ZONA_INVALIDA"
+
+
+def test_el_envio_es_gratis_desde_sesenta_mil_inclusive():
+    subtotal_con_descuento = Decimal("60000.00")
+
+    envio = calcular_envio(subtotal_con_descuento, "INTERIOR")
+
+    assert envio == Decimal("0.00")
 
 
 def test_el_envio_gratis_se_evalua_con_el_descuento_aplicado():
