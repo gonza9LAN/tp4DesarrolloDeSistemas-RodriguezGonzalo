@@ -87,3 +87,22 @@ def test_el_medio_centavo_redondea_hacia_arriba():
     descuento = calcular_descuento(subtotal, 1, "EGRESADOS2026", HOY_VIGENTE)
 
     assert descuento == Decimal("1799.93")
+
+
+# R6 — Cupones
+
+
+def test_cupon_y_cantidad_no_se_suman_y_gana_el_cupon_si_es_mayor():
+    subtotal = Decimal("100000.00")
+
+    descuento = calcular_descuento(subtotal, 6, "EGRESADOS2026", HOY_VIGENTE)
+
+    assert descuento == Decimal("15000.00")
+
+
+def test_cupon_y_cantidad_no_se_suman_y_gana_la_cantidad_si_es_mayor():
+    subtotal = Decimal("100000.00")
+
+    descuento = calcular_descuento(subtotal, 6, "BIENVENIDA", HOY_VIGENTE)
+
+    assert descuento == Decimal("10000.00")
