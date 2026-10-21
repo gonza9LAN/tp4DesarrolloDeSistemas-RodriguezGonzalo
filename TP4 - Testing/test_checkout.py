@@ -79,3 +79,11 @@ def test_el_ejemplo_de_la_especificacion_devuelve_importes_decimal():
         "total": Decimal("52499.80"),
     }
     assert all(type(importe) is Decimal for importe in resultado.values())
+
+
+def test_el_medio_centavo_redondea_hacia_arriba():
+    subtotal = Decimal("11999.50")
+
+    descuento = calcular_descuento(subtotal, 1, "EGRESADOS2026", HOY_VIGENTE)
+
+    assert descuento == Decimal("1799.93")
