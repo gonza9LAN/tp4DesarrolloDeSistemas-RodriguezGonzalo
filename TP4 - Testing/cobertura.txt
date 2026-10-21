@@ -1,0 +1,17 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\Usuario\Documents\GitHub\tp4DesarrolloDeSistemas-RodriguezGonzalo\TP4 - Testing
+plugins: cov-7.1.0
+collected 37 items
+
+test_checkout.py .....................................                   [100%]
+
+=============================== tests coverage ================================
+______________ coverage: platform win32, python 3.13.14-final-0 _______________
+
+Name          Stmts   Miss Branch BrPart  Cover   Missing
+---------------------------------------------------------
+checkout.py      71      0     32      1    99%   90->98
+---------------------------------------------------------
+TOTAL            71      0     32      1    99%
+============================= 37 passed in 0.16s ==============================
