@@ -27,3 +27,30 @@ def codigo_de_error(funcion, *args):
 
 def test_cantidad_cero_es_invalida():
     assert codigo_de_error(validar_item, item(cantidad=0)) == "CANTIDAD_INVALIDA"
+
+
+# R1 — Catálogo y precios
+
+
+def test_validar_item_rechaza_un_producto_que_no_esta_en_el_catalogo():
+    gorra = item(producto="gorra")
+
+    codigo = codigo_de_error(validar_item, gorra)
+
+    assert codigo == "PRODUCTO_INEXISTENTE"
+
+
+def test_un_producto_inexistente_en_el_carrito_no_se_saltea():
+    carrito = [item(producto="buzo"), item(producto="gorra")]
+
+    codigo = codigo_de_error(calcular_total, carrito, "CABA")
+
+    assert codigo == "PRODUCTO_INEXISTENTE"
+
+
+def test_el_producto_se_valida_antes_que_el_talle():
+    carrito = [item(producto="gorra", talle="XXXL")]
+
+    codigo = codigo_de_error(calcular_total, carrito, "CABA")
+
+    assert codigo == "PRODUCTO_INEXISTENTE"
