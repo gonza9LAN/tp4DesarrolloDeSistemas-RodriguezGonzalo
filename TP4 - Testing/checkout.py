@@ -1,4 +1,3 @@
-import json
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -29,6 +28,11 @@ ENVIOS = {
     "INTERIOR": Decimal("6500.00"),
     "RETIRO": Decimal("0.00"),
 }
+
+PRENDAS_PARA_DESCUENTO = 5
+PORCENTAJE_POR_CANTIDAD = Decimal("0.10")
+MINIMO_ENVIO_GRATIS = Decimal("60000.00")
+CENTAVO = Decimal("0.01")
 
 
 def validar_item(item):
@@ -63,8 +67,8 @@ def calcular_descuento(subtotal, cantidad_prendas, cupon=None, fecha=None):
         fecha = date.today()
 
     descuento_cantidad = Decimal("0")
-    if cantidad_prendas >= 5:
-        descuento_cantidad = subtotal * Decimal("0.10")
+    if cantidad_prendas >= PRENDAS_PARA_DESCUENTO:
+        descuento_cantidad = subtotal * PORCENTAJE_POR_CANTIDAD
 
     descuento_cupon = Decimal("0")
 
@@ -73,7 +77,6 @@ def calcular_descuento(subtotal, cantidad_prendas, cupon=None, fecha=None):
     codigo = cupon.strip().upper() if cupon is not None else ""
 
     if codigo:
-
         if codigo not in CUPONES:
             raise CheckoutError("CUPON_INVALIDO", "El cupón no existe")
 
@@ -93,7 +96,7 @@ def calcular_descuento(subtotal, cantidad_prendas, cupon=None, fecha=None):
             descuento_cupon = datos["valor"]
 
     descuento = max(descuento_cantidad, descuento_cupon)
-    return descuento.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return descuento.quantize(CENTAVO, rounding=ROUND_HALF_UP)
 
 
 def calcular_envio(subtotal_con_descuento, zona):
@@ -105,7 +108,7 @@ def calcular_envio(subtotal_con_descuento, zona):
             f"Zona inválida. Opciones: {', '.join(ENVIOS)}",
         )
 
-    if subtotal_con_descuento >= 60000:
+    if subtotal_con_descuento >= MINIMO_ENVIO_GRATIS:
         return Decimal("0.00")
 
     return ENVIOS[zona]
@@ -114,18 +117,13 @@ def calcular_envio(subtotal_con_descuento, zona):
 def calcular_total(carrito, zona, cupon=None, fecha=None):
     subtotal = calcular_subtotal(carrito)
 
-    prendas = 0
-    for item in carrito:
-        prendas = prendas + item["cantidad"]
+    prendas = sum(item["cantidad"] for item in carrito)
 
     descuento = calcular_descuento(subtotal, prendas, cupon, fecha)
     envio = calcular_envio(subtotal - descuento, zona)
-    total = subtotal - descuento + envio
-
-    resultado = {
+    return {
         "subtotal": subtotal,
         "descuento": descuento,
         "envio": envio,
-        "total": round(total, 2),
+        "total": subtotal - descuento + envio,
     }
-    return resultado
