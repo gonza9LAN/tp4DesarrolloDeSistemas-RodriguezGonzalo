@@ -55,6 +55,15 @@ def test_el_producto_se_valida_antes_que_el_talle():
 
     assert codigo == "PRODUCTO_INEXISTENTE"
 
+
+def test_el_precio_sale_del_catalogo_aunque_el_item_traiga_otro():
+    carrito = [item(producto="buzo", cantidad=2, precio=1)]
+
+    subtotal = calcular_subtotal(carrito)
+
+    assert subtotal == Decimal("49999.80")
+
+
 # R7 — Dinero y redondeo
 
 
