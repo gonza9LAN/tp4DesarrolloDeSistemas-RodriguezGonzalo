@@ -54,3 +54,19 @@ def test_el_producto_se_valida_antes_que_el_talle():
     codigo = codigo_de_error(calcular_total, carrito, "CABA")
 
     assert codigo == "PRODUCTO_INEXISTENTE"
+
+# R7 — Dinero y redondeo
+
+
+def test_el_ejemplo_de_la_especificacion_devuelve_importes_decimal():
+    carrito = [item(producto="buzo", talle="M", cantidad=2)]
+
+    resultado = calcular_total(carrito, "CABA")
+
+    assert resultado == {
+        "subtotal": Decimal("49999.80"),
+        "descuento": Decimal("0.00"),
+        "envio": Decimal("2500.00"),
+        "total": Decimal("52499.80"),
+    }
+    assert all(type(importe) is Decimal for importe in resultado.values())
